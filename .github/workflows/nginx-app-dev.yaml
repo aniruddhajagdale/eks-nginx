@@ -5,7 +5,7 @@ on:
     branches: [dev]
     paths:
       - 'nginx/**'
-      - '.github/workflows/nginx-app-dev.yml'
+      - '.github/workflows/nginx-app-dev.yaml'
 
 permissions:
   id-token: write
