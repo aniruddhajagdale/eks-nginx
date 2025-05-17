@@ -72,7 +72,7 @@ jobs:
       - name: Deploy Blue environment (rendered manifest)
         run: |
           export IMAGE_URI=${{ env.IMAGE_URI }}
-          envsubst < nginx/k8s/dev/deployment-blue.yaml > rendered-deployment.yaml
+          envsubst < ./nginx/k8s/dev/deployment-blue.yaml > rendered-deployment.yaml
           kubectl apply -f rendered-deployment.yaml -n $NAMESPACE
 
       - name: Apply Kubernetes Service
