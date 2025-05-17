@@ -58,8 +58,8 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --region ${{ vars.TF_VAR_REGION }} --name ${{ vars.CLUSTER_NAME }}
 
-      - name: Check EKS Auth
-        run: kubectl get nodes
+      - name: Validate identity
+        run: aws sts get-caller-identity
 
       - name: Create Namespace (if not exists)
         run: |
