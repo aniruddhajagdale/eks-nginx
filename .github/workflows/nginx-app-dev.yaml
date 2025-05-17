@@ -58,6 +58,9 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --region ${{ vars.TF_VAR_REGION }} --name ${{ vars.CLUSTER_NAME }}
 
+      - name: Check EKS Auth
+        run: kubectl get nodes
+
       - name: Create Namespace (if not exists)
         run: |
           kubectl get namespace $NAMESPACE || kubectl create namespace $NAMESPACE
