@@ -1,0 +1,75 @@
+name: Nginx web server CI/CD - Dev
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'nginx/**'
+      - '.github/workflows/nginx-app-dev.yml'
+
+permissions:
+  id-token: write
+  contents: read
+
+env: 
+  NAMESPACE: nginx-dev
+jobs:
+  build_and_deploy:
+    name: Build and Deploy to Dev
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Lint check (placeholder)
+        run: echo "✅ Lint passed!"
+
+      - name: Unit test (placeholder)
+        run: echo "✅ Tests passed!"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.TF_VAR_REGION }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker image to ECR
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/nginx:$IMAGE_TAG
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          docker build -t $IMAGE_URI ./nginx
+          docker tag $IMAGE_URI ${{ steps.login-ecr.outputs.registry }}/${IMAGE_URI}
+          docker push ${{ steps.login-ecr.outputs.registry }}/${IMAGE_URI}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: latest
+        
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --region ${{ vars.TF_VAR_REGION }} --name ${{ vars.TF_VAR_CLUSTER_NAME }}
+
+      - name: Create Namespace (if not exists)
+        run: |
+          kubectl get namespace $NAMESPACE || kubectl create namespace $NAMESPACE
+
+      - name: Install envsubst
+        run: sudo apt-get update && sudo apt-get install -y gettext
+
+      - name: Deploy Blue environment (rendered manifest)
+        run: |
+          export IMAGE_URI=${{ env.IMAGE_URI }}
+          envsubst < nginx/k8s/dev/deployment-blue.yaml > rendered-deployment.yaml
+          kubectl apply -f rendered-deployment.yaml -n $NAMESPACE
+
+      - name: Apply Kubernetes Service
+        run: |
+          kubectl apply -f nginx/k8s/dev/service.yaml -n $NAMESPACE

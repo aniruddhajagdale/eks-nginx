@@ -1,50 +1,41 @@
+name: Delete EKS Cluster and associated resources
 
-name: EKS Cluster Deployment (Dev)
+on: 
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select environment"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - prod
+          - dev
 
-on:
-  push:
-    branches: [dev]
-    paths:
-      - '**.tf'
 jobs:
-  terraform:
+  terraform_destroy:
     runs-on: ubuntu-latest
-    environment: dev
+    environment: ${{ inputs.environment }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
+      - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
-        with: 
+        with:
           terraform_version: latest
 
-        # Set the working directory based on the branch/environment
       - name: Set Working Directory
-        id : set-dir
-        run: echo "WORKING_DIR=./infra/envs/dev" >> $GITHUB_ENV
+        run: echo "WORKING_DIR=./infra/envs/${{ inputs.environment }}" >> $GITHUB_ENV
 
-        # Authenticate using AWS Credentials
-
-      # - name: Configure AWS Credentials (Access Keys)
-      #   uses: aws-actions/configure-aws-credentials@v2
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ${{ vars.TF_VAR_region }}
-
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Configure AWS Credentials (Access Keys)
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.TF_VAR_region }}
-
-          
-      - name: Verify identity
-        run: aws sts get-caller-identity
-
-      # Set Environment-Specific Variables (from GitHub Secrets or Environments)
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.TF_VAR_region}}
+      
       - name: Set Terraform Variables
         run: |
           echo 'TF_VAR_env=${{ vars.TF_VAR_env }}' >> $GITHUB_ENV
@@ -65,15 +56,7 @@ jobs:
         run: terraform init
         working-directory: ${{ env.WORKING_DIR }}
 
-      - name: Terraform Validate
-        run: terraform validate
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve
         working-directory: ${{ env.WORKING_DIR }}
-
-      - name: Terraform Plan
-        run: terraform plan
-        working-directory: ${{ env.WORKING_DIR }}
-
-      - name: Terraform Apply
-        if: github.ref_name == 'dev' || (github.ref_name == 'main' && github.event_name == 'push')
-        run: terraform apply -auto-approve
-        working-directory: ${{ env.WORKING_DIR }}
+      
