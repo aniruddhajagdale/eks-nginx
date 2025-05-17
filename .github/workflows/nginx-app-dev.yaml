@@ -13,7 +13,7 @@ permissions:
 
 env: 
   NAMESPACE: nginx-dev
-  ECR_REPO: ${{ vars.TF_VAR_ECR_REPO_NAME }}-dev
+  ECR_REPO: ${{ vars.ECR_REPO_NAME }}
 jobs:
   build_and_deploy:
     name: Build and Deploy to Dev
@@ -56,7 +56,7 @@ jobs:
           version: latest
         
       - name: Update kubeconfig
-        run: aws eks update-kubeconfig --region ${{ vars.TF_VAR_REGION }} --name ${{ vars.TF_VAR_CLUSTER_NAME }}
+        run: aws eks update-kubeconfig --region ${{ vars.TF_VAR_REGION }} --name ${{ vars.CLUSTER_NAME }}
 
       - name: Create Namespace (if not exists)
         run: |
