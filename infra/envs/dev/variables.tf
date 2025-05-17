@@ -50,7 +50,7 @@ variable "desired_size" {
 }
 variable "instance_types" {
   type        = list(string)
-  description = "Instance types for the EKS nodes."
+  description = "Instance types for the EKS nodes"
   # default     = ["t3.medium"]
 }
 variable "ecr_repo_name" {
