@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Lint check (placeholder)
-        run: echo "✅ Lint passed!"
+        run: echo "✅ Lint passed!!"
 
       - name: Unit test (placeholder)
         run: echo "✅ Tests passed!"
