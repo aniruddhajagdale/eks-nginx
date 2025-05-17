@@ -77,4 +77,4 @@ jobs:
 
       - name: Apply Kubernetes Service
         run: |
-          kubectl apply -f nginx/k8s/dev/service.yaml -n $NAMESPACE
+          kubectl apply -f nginx/k8/dev/service.yaml -n $NAMESPACE
