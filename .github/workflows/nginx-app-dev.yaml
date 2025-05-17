@@ -13,6 +13,7 @@ permissions:
 
 env: 
   NAMESPACE: nginx-dev
+  ECR_REPO: ${{ vars.TF_VAR_ECR_REPO_NAME }}
 jobs:
   build_and_deploy:
     name: Build and Deploy to Dev
@@ -43,7 +44,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/nginx:$IMAGE_TAG
+          IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/$ECR_REPO:$IMAGE_TAG
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
           docker build -t $IMAGE_URI ./nginx
           docker tag $IMAGE_URI ${{ steps.login-ecr.outputs.registry }}/${IMAGE_URI}
