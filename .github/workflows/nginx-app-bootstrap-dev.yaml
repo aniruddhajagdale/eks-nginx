@@ -1,4 +1,4 @@
-name: Nginx App Bootstrap (Blue/Green Setup)
+name: Nginx web server Bootstrap (Blue/Green Setup)
 
 on:
   workflow_dispatch:
@@ -27,18 +27,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.TF_VAR_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      # - name: Login to Amazon ECR
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and Push Docker Image to ECR
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:$IMAGE_TAG
-          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
-          docker build -t $IMAGE_URI ./nginx
-          docker push $IMAGE_URI
+      # - name: Build and Push Docker Image to ECR
+      #   env:
+      #     IMAGE_TAG: ${{ github.sha }}
+      #   run: |
+      #     IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:$IMAGE_TAG
+      #     echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+      #     docker build -t $IMAGE_URI ./nginx
+      #     docker push $IMAGE_URI
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
@@ -58,23 +58,15 @@ jobs:
 
       - name: Deploy BLUE release
         run: |
-          helm install $BLUE_RELEASE bitnami/nginx \
+          helm upgrade --install $HELM_RELEASE_BLUE bitnami/nginx \
             --namespace $NAMESPACE \
-            --set image.registry=${{ steps.login-ecr.outputs.registry }} \
-            --set image.repository=${{ env.ECR_REPO }} \
-            --set image.tag=${{ github.sha }} \
-            --set global.security.allowInsecureImages=true
-            --set service.enabled=false
+            --set service.type=ClusterIP
 
       - name: Deploy GREEN release
         run: |
-          helm install $GREEN_RELEASE bitnami/nginx \
+          helm upgrade --install $HELM_RELEASE_GREEN bitnami/nginx \
             --namespace $NAMESPACE \
-            --set image.registry=${{ steps.login-ecr.outputs.registry }} \
-            --set image.repository=${{ env.ECR_REPO }} \
-            --set image.tag=${{ github.sha }} \
-            --set global.security.allowInsecureImages=true
-            --set service.enabled=false        
+            --set service.type=ClusterIP       
 
       - name: Create Stable Service (points to BLUE)
         run: |
