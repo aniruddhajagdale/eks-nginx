@@ -15,10 +15,9 @@ env:
   NAMESPACE: nginx-dev
   BLUE_RELEASE: nginx-blue
   GREEN_RELEASE: nginx-green
-  STABLE_SERVICE: nginx
+  STABLE_SERVICE: nginx-stable
   APP_PORT: 8080
-  ECR_REPO: ${{ vars.ECR_REPO_NAME }}
-
+  
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
@@ -35,18 +34,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.TF_VAR_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      # - name: Login to Amazon ECR
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and Push Docker Image to ECR
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:$IMAGE_TAG
-          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
-          docker build -t $IMAGE_URI ./nginx
-          docker push $IMAGE_URI
+      # - name: Build and Push Docker Image to ECR
+      #   env:
+      #     IMAGE_TAG: ${{ github.sha }}
+      #   run: |
+      #     IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:$IMAGE_TAG
+      #     echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+      #     docker build -t $IMAGE_URI ./nginx
+      #     docker push $IMAGE_URI
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
@@ -71,11 +70,7 @@ jobs:
 
       - name: Upgrade Inactive Helm Release
         run: |
-          helm upgrade $INACTIVE_RELEASE bitnami/nginx \
-            --namespace $NAMESPACE \
-            --set image.registry=${{ steps.login-ecr.outputs.registry }} \
-            --set image.repository=${{ env.ECR_REPO }} \
-            --set image.tag=${{ github.sha }} \
-            --set containerPorts.http=${{ env.APP_PORT }} \
-            --set service.enabled=false
-            --set global.security.allowInsecureImages=true
+          NAMESPACE=${{ env.NAMESPACE }}
+          CHART_NAME=bitnami/nginx
+          helm upgrade $INACTIVE_RELEASE $CHART_NAME --namespace $NAMESPACE \
+

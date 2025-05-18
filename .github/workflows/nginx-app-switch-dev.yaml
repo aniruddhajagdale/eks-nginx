@@ -13,7 +13,7 @@ on:
 
 env:
   NAMESPACE: nginx-dev
-  STABLE_SERVICE: nginx
+  STABLE_SERVICE: nginx-stable
   APP_PORT: 8080
 
 jobs:

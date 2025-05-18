@@ -9,8 +9,7 @@ env:
   GREEN_RELEASE: nginx-green
   STABLE_SERVICE: nginx-stable
   APP_PORT: 8080
-  ECR_REPO: ${{ vars.ECR_REPO_NAME }}
-
+  
 jobs:
   bootstrap:
     runs-on: ubuntu-latest
