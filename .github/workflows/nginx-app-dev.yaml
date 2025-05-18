@@ -17,7 +17,7 @@ env:
   GREEN_RELEASE: nginx-green
   STABLE_SERVICE: nginx-stable
   APP_PORT: 8080
-  
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
@@ -67,6 +67,9 @@ jobs:
             echo "ACTIVE_RELEASE=$GREEN_RELEASE" >> $GITHUB_ENV
             echo "INACTIVE_RELEASE=$BLUE_RELEASE" >> $GITHUB_ENV
           fi
+          
+      - name: Add Bitnami repo
+        run: helm repo add bitnami https://charts.bitnami.com/bitnami && helm repo update
 
       - name: Upgrade Inactive Helm Release
         run: |
