@@ -63,10 +63,10 @@ jobs:
             --set image.registry=${{ steps.login-ecr.outputs.registry }} \
             --set image.repository=${{ env.ECR_REPO }} \
             --set image.tag=${{ github.sha }} \
+            --set global.security.allowInsecureImages=true
             --set containerPorts.http=${{ env.APP_PORT }} \
             --set service.enabled=false
-            --set global.security.allowInsecureImages=true
-
+            
       - name: Deploy GREEN release
         run: |
           helm install $GREEN_RELEASE bitnami/nginx \
@@ -74,9 +74,9 @@ jobs:
             --set image.registry=${{ steps.login-ecr.outputs.registry }} \
             --set image.repository=${{ env.ECR_REPO }} \
             --set image.tag=${{ github.sha }} \
-            --set containerPorts.http=${{ env.APP_PORT }} \
-            --set service.enabled=false
             --set global.security.allowInsecureImages=true
+            --set containerPorts.http=${{ env.APP_PORT }} \
+            --set service.enabled=false        
 
       - name: Create Stable Service (points to BLUE)
         run: |
