@@ -46,15 +46,15 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --region ${{ vars.TF_VAR_REGION }} --name ${{ vars.CLUSTER_NAME }}
 
-      - name: Create Namespace (if not exists)
-        run: |
-          kubectl get ns $NAMESPACE || kubectl create ns $NAMESPACE
+      # - name: Create Namespace (if not exists)
+      #   run: |
+      #     kubectl get ns $NAMESPACE || kubectl create ns $NAMESPACE
 
       - name: Install Helm
         uses: azure/setup-helm@v3
 
-      - name: Add Bitnami repo
-        run: helm repo add bitnami https://charts.bitnami.com/bitnami && helm repo update
+      # - name: Add Bitnami repo
+      #   run: helm repo add bitnami https://charts.bitnami.com/bitnami && helm repo update
 
       - name: Deploy BLUE release
         run: |
