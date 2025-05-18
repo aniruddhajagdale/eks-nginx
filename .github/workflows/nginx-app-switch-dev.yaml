@@ -1,0 +1,46 @@
+name: Nginx App Switch Blue/Green
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target release to switch to (nginx-blue or nginx-green)'
+        required: true
+        type: choice
+        options:
+          - nginx-blue
+          - nginx-green
+
+env:
+  NAMESPACE: nginx-dev
+  STABLE_SERVICE: nginx
+  APP_PORT: 8080
+
+jobs:
+  switch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.TF_VAR_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --region ${{ vars.TF_VAR_REGION }} --name ${{ vars.CLUSTER_NAME }}
+
+      - name: Switch Service Selector
+        run: |
+          kubectl patch svc $STABLE_SERVICE -n $NAMESPACE --type=json -p='[{
+            "op": "replace",
+            "path": "/spec/selector/app.kubernetes.io~1instance",
+            "value": "${{ github.event.inputs.target }}"
+          }]'

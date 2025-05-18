@@ -1,17 +1,9 @@
-name: Nginx App CI/CD - Dev
+name: Nginx App Bootstrap (Blue/Green Setup)
 
 on:
-  push:
-    branches: [dev]
-    paths:
-      - 'nginx/**'
-      - '.github/workflows/nginx-app-dev.yaml'
+  workflow_dispatch:
 
-permissions:
-  id-token: write
-  contents: read
-
-env: 
+env:
   NAMESPACE: nginx-dev
   BLUE_RELEASE: nginx-blue
   GREEN_RELEASE: nginx-green
@@ -20,7 +12,7 @@ env:
   ECR_REPO: ${{ vars.ECR_REPO_NAME }}
 
 jobs:
-  build_and_deploy:
+  bootstrap:
     runs-on: ubuntu-latest
     environment: dev
 
@@ -28,7 +20,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials (Access Key)
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -54,27 +46,50 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --region ${{ vars.TF_VAR_REGION }} --name ${{ vars.CLUSTER_NAME }}
 
+      - name: Create Namespace (if not exists)
+        run: |
+          kubectl get ns $NAMESPACE || kubectl create ns $NAMESPACE
+
       - name: Install Helm
         uses: azure/setup-helm@v3
 
-      - name: Determine Active and Inactive Release
-        id: release-check
-        run: |
-          ACTIVE_RELEASE=$(kubectl get svc $STABLE_SERVICE -n $NAMESPACE -o jsonpath='{.spec.selector.app\.kubernetes\.io/instance}')
-          if [[ "$ACTIVE_RELEASE" == "$BLUE_RELEASE" ]]; then
-            echo "ACTIVE_RELEASE=$BLUE_RELEASE" >> $GITHUB_ENV
-            echo "INACTIVE_RELEASE=$GREEN_RELEASE" >> $GITHUB_ENV
-          else
-            echo "ACTIVE_RELEASE=$GREEN_RELEASE" >> $GITHUB_ENV
-            echo "INACTIVE_RELEASE=$BLUE_RELEASE" >> $GITHUB_ENV
-          fi
+      - name: Add Bitnami repo
+        run: helm repo add bitnami https://charts.bitnami.com/bitnami && helm repo update
 
-      - name: Upgrade Inactive Helm Release
+      - name: Deploy BLUE release
         run: |
-          helm upgrade $INACTIVE_RELEASE bitnami/nginx \
+          helm install $BLUE_RELEASE bitnami/nginx \
             --namespace $NAMESPACE \
             --set image.registry=${{ steps.login-ecr.outputs.registry }} \
             --set image.repository=${{ env.ECR_REPO }} \
             --set image.tag=${{ github.sha }} \
             --set containerPorts.http=${{ env.APP_PORT }} \
             --set service.enabled=false
+
+      - name: Deploy GREEN release
+        run: |
+          helm install $GREEN_RELEASE bitnami/nginx \
+            --namespace $NAMESPACE \
+            --set image.registry=${{ steps.login-ecr.outputs.registry }} \
+            --set image.repository=${{ env.ECR_REPO }} \
+            --set image.tag=${{ github.sha }} \
+            --set containerPorts.http=${{ env.APP_PORT }} \
+            --set service.enabled=false
+
+      - name: Create Stable Service (points to BLUE)
+        run: |
+          cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: $STABLE_SERVICE
+            namespace: $NAMESPACE
+          spec:
+            selector:
+              app.kubernetes.io/instance: $BLUE_RELEASE
+            ports:
+              - protocol: TCP
+                port: 80
+                targetPort: $APP_PORT
+            type: LoadBalancer
+          EOF
