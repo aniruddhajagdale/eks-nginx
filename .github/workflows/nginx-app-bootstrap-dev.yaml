@@ -7,10 +7,9 @@ env:
   NAMESPACE: nginx-dev
   BLUE_RELEASE: nginx-blue
   GREEN_RELEASE: nginx-green
-  STABLE_SERVICE: nginx
+  STABLE_SERVICE: nginx-stable
   APP_PORT: 8080
-  ECR_REPO: ${{ vars.ECR_REPO_NAME }}
-
+  
 jobs:
   bootstrap:
     runs-on: ubuntu-latest
@@ -46,9 +45,9 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --region ${{ vars.TF_VAR_REGION }} --name ${{ vars.CLUSTER_NAME }}
 
-      - name: Create Namespace (if not exists)
-        run: |
-          kubectl get ns $NAMESPACE || kubectl create ns $NAMESPACE
+      # - name: Create Namespace (if not exists)
+      #   run: |
+      #     kubectl get ns $NAMESPACE || kubectl create ns $NAMESPACE
 
       - name: Install Helm
         uses: azure/setup-helm@v3
@@ -58,15 +57,17 @@ jobs:
 
       - name: Deploy BLUE release
         run: |
-          helm upgrade --install $HELM_RELEASE_BLUE bitnami/nginx \
-            --namespace $NAMESPACE \
-            --set service.type=ClusterIP
+          RELEASE_NAME=${{ env.BLUE_RELEASE }}
+          NAMESPACE=${{ env.NAMESPACE }}
+          CHART_NAME=bitnami/nginx
+          helm upgrade --install $RELEASE_NAME $CHART_NAME --namespace $NAMESPACE --create-namespace --set service.type=ClusterIP
 
       - name: Deploy GREEN release
         run: |
-          helm upgrade --install $HELM_RELEASE_GREEN bitnami/nginx \
-            --namespace $NAMESPACE \
-            --set service.type=ClusterIP       
+          RELEASE_NAME=${{ env.GREEN_RELEASE }}
+          NAMESPACE=${{ env.NAMESPACE }}
+          CHART_NAME=bitnami/nginx
+          helm upgrade --install $RELEASE_NAME $CHART_NAME --namespace $NAMESPACE --create-namespace --set service.type=ClusterIP       
 
       - name: Create Stable Service (points to BLUE)
         run: |

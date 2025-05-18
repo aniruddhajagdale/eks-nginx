@@ -13,18 +13,19 @@ on:
 
 env:
   NAMESPACE: nginx-dev
-  STABLE_SERVICE: nginx
+  STABLE_SERVICE: nginx-stable
   APP_PORT: 8080
 
 jobs:
   switch:
     runs-on: ubuntu-latest
-
+    environment: dev
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials (Access Key)
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
