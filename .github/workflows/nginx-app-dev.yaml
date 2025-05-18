@@ -1,4 +1,4 @@
-name: Nginx App CI/CD - Dev
+name: Nginx web server CI/CD - Dev
 
 on:
   push:
@@ -78,3 +78,4 @@ jobs:
             --set image.tag=${{ github.sha }} \
             --set containerPorts.http=${{ env.APP_PORT }} \
             --set service.enabled=false
+            --set global.security.allowInsecureImages=true

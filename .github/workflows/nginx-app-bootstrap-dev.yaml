@@ -65,6 +65,7 @@ jobs:
             --set image.tag=${{ github.sha }} \
             --set containerPorts.http=${{ env.APP_PORT }} \
             --set service.enabled=false
+            --set global.security.allowInsecureImages=true
 
       - name: Deploy GREEN release
         run: |
@@ -75,6 +76,7 @@ jobs:
             --set image.tag=${{ github.sha }} \
             --set containerPorts.http=${{ env.APP_PORT }} \
             --set service.enabled=false
+            --set global.security.allowInsecureImages=true
 
       - name: Create Stable Service (points to BLUE)
         run: |
